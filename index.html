@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mope.io Era Select</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1b2a3a; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; outline: none; }
+</style>
+</head>
+<body>
+<canvas id="eraCanvas" tabindex="1"></canvas>
+<script>
+var ERAS = [
+  { label: "July 2017",     folder: "mope_fixed_20170704", color: "#6fbf5f" },
+  { label: "November 2018", folder: "mope_fixed_20181111", color: "#e0a63c" },
+  { label: "October 2019",  folder: "mope_fixed_20191029", color: "#d9573f" },
+  { label: "March 2020",    folder: "mope_fixed_20200321", color: "#5aa0d8" }
+];
+
+var canvas = document.getElementById("eraCanvas");
+var ctx = canvas.getContext("2d");
+var hover = -1, selected = 0, cards = [];
+
+function resize() {
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = innerWidth * dpr;
+  canvas.height = innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  layout();
+  draw();
+}
+
+function layout() {
+  var w = innerWidth, h = innerHeight;
+  var cols = w < 700 ? 1 : 2;
+  var rows = Math.ceil(ERAS.length / cols);
+  var gap = 20, top = 110;
+  var cw = Math.min(360, (w - gap * (cols + 1)) / cols);
+  var ch = Math.min(140, (h - top - gap * (rows + 1)) / rows);
+  var startX = (w - (cw * cols + gap * (cols - 1))) / 2;
+  cards = ERAS.map(function (e, i) {
+    return { x: startX + (i % cols) * (cw + gap), y: top + Math.floor(i / cols) * (ch + gap), w: cw, h: ch };
+  });
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function draw() {
+  var w = innerWidth, h = innerHeight;
+  ctx.fillStyle = "#1b2a3a";
+  ctx.fillRect(0, 0, w, h);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 36px sans-serif";
+  ctx.fillText("Mope.io Era Select", w / 2, 60);
+  ctx.fillStyle = "#9fb3c8";
+  ctx.font = "16px sans-serif";
+  ctx.fillText("Click an era (or use arrow keys + Enter)", w / 2, 88);
+
+  cards.forEach(function (c, i) {
+    var era = ERAS[i], active = i === hover || i === selected;
+    ctx.fillStyle = era.color;
+    ctx.globalAlpha = active ? 1 : 0.7;
+    roundRect(c.x, c.y, c.w, c.h, 14);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    if (i === selected) {
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#10202e";
+    ctx.font = "bold 28px sans-serif";
+    ctx.fillText(era.label, c.x + c.w / 2, c.y + c.h / 2 + 4);
+    ctx.font = "13px monospace";
+    ctx.fillText(era.folder, c.x + c.w / 2, c.y + c.h / 2 + 30);
+  });
+}
+
+function hit(e) {
+  var r = canvas.getBoundingClientRect();
+  var x = e.clientX - r.left, y = e.clientY - r.top;
+  for (var i = 0; i < cards.length; i++) {
+    var c = cards[i];
+    if (x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h) return i;
+  }
+  return -1;
+}
+
+function launch(i) { location.href = ERAS[i].folder + "/index.html"; }
+
+canvas.addEventListener("mousemove", function (e) {
+  var i = hit(e);
+  if (i !== hover) { hover = i; canvas.style.cursor = i >= 0 ? "pointer" : "default"; draw(); }
+});
+canvas.addEventListener("click", function (e) {
+  var i = hit(e);
+  if (i >= 0) launch(i);
+});
+canvas.addEventListener("keydown", function (e) {
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") selected = (selected + 1) % ERAS.length;
+  else if (e.key === "ArrowLeft" || e.key === "ArrowUp") selected = (selected + ERAS.length - 1) % ERAS.length;
+  else if (e.key === "Enter") return launch(selected);
+  else return;
+  draw();
+});
+
+addEventListener("resize", resize);
+resize();
+canvas.focus();
+</script>
+</body>
+</html>
